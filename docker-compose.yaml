@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  master:
+    image: postgres:latest
+    container_name: "master"
+    environment:
+      POSTGRES_DB: "avito-tech-local"
+      POSTGRES_USER: "avito-tech-local-admin"
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+#    networks:
+#      - mynet
+
+#  migrate:
+#    image: migrate/migrate
+#    container_name: "migrate"
+#    command: [ "-path", "/migrations", "-database",  "postgresql://social-network-local-admin:eephayl3eaph8Xo@master:5432/social-network-local?sslmode=disable", "up" ]
+#    networks:
+#      - mynet
+#    depends_on:
+#      master:
+#        condition: service_healthy # needful setting which wait available postgres host
+#    volumes:
+#      - ./migrations:/migrations
+
+#volumes:
+#  postgres-db-master:
+#  postgres-db-slave:
+#
+#networks:
+#  mynet:
+#    driver: bridge
+#    ipam:
+#      driver: default
+#      config:
+#        - subnet: 172.16.1.0/24
