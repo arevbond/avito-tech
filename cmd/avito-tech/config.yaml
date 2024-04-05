@@ -1,0 +1,24 @@
+env: "dev"
+
+application:
+  app: "avito-tech"
+  salt_value: "asd12dasklj11k"
+
+public_server:
+  enable: true
+  endpoint: "localhost"
+  port: 8080
+
+admin_server:
+  enable: true
+  endpoint: "localhost"
+  port: 8081
+
+storage:
+  hosts:
+    - "master"
+  port: 5432
+  database: "avito-tech-local"
+  username: "avito-tech-local-admin"
+  ssl_mode: "disable"
+  connection_attempts: 3
