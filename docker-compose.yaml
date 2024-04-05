@@ -13,6 +13,17 @@ services:
     restart: unless-stopped
 #    networks:
 #      - mynet
+  pgAdmin:
+    container_name: "avito_pg-admin"
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: adming@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_LISTEN_PORT: 8081
+    ports:
+      - 8082:8081
+    restart: unless-stopped
+
 
 #  migrate:
 #    image: migrate/migrate
