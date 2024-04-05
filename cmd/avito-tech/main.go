@@ -1,6 +1,7 @@
 package main
 
 import (
+	"avito-tech/cmd/avito-tech/application"
 	"avito-tech/cmd/avito-tech/config"
 	"flag"
 	"fmt"
@@ -23,8 +24,14 @@ func main() {
 	}
 
 	log := setupLogger(cfg.Env)
-	log = log.With(slog.String("env", cfg.Env))
-	log.Info("Start server", slog.String("address", cfg.PublicServer.Endpoint))
+
+	app := application.New(cfg, log)
+	if err = app.Run(); err != nil {
+		log.Error("application stopped with error", "error", err)
+		os.Exit(1)
+	} else {
+		log.Info("application stopped")
+	}
 
 }
 

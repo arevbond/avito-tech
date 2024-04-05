@@ -16,7 +16,7 @@ admin_server:
 
 storage:
   hosts:
-    - "master"
+    - "localhost"
   port: 5432
   database: "avito-tech-local"
   username: "avito-tech-local-admin"

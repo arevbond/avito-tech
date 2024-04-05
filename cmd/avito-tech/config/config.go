@@ -12,7 +12,7 @@ type Config struct {
 
 type ApplicationConfig struct {
 	GracefulShutdownTimeout time.Duration `yaml:"graceful_shutdown_timeout"`
-	App                     string        `yaml:"app"`
+	App                     string        `yaml:"application"`
 	SaltValue               string        `yaml:"salt_value"`
 }
 
