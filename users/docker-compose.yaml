@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  master:
+    image: postgres:latest
+    container_name: "users-db"
+    environment:
+      POSTGRES_DB: "avito-tech-local-users"
+      POSTGRES_USER: "avito-tech-local-admin"
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+  pgAdmin:
+    container_name: "users-avito_pg-admin"
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: adming@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_LISTEN_PORT: 8081
+    ports:
+      - 8083:8081
+    restart: unless-stopped

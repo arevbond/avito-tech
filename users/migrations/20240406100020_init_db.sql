@@ -28,3 +28,5 @@ CREATE TABLE IF NOT EXISTS tokens (
 -- +goose StatementBegin
 SELECT 'down SQL query';
 -- +goose StatementEnd
+    DROP TABLE tokens;
+    DROP TABLE users;
