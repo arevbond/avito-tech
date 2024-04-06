@@ -1,12 +1,8 @@
 package main
 
 import (
-	"avito-tech/cmd/avito-tech/application"
-	"avito-tech/cmd/avito-tech/config"
-	"flag"
-	"fmt"
-	"github.com/ilyakaznacheev/cleanenv"
-	"github.com/joho/godotenv"
+	"banners/cmd/avito-tech/application"
+	"banners/cmd/avito-tech/config"
 	"log"
 	"log/slog"
 	"os"
@@ -18,7 +14,7 @@ const (
 )
 
 func main() {
-	cfg, err := loadConfig()
+	cfg, err := config.New()
 	if err != nil {
 		log.Fatalf("Failed to create config: %v", err)
 	}
@@ -33,23 +29,6 @@ func main() {
 		log.Info("application stopped")
 	}
 
-}
-
-func loadConfig() (*config.Config, error) {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("No .env file found")
-	}
-
-	cfg := config.NewDefaultConfig()
-
-	configPath := flag.String("config", "", "config path")
-	flag.Parse()
-
-	if err := cleanenv.ReadConfig(*configPath, cfg); err != nil {
-		return nil, fmt.Errorf("can't load config: %w", err)
-	}
-
-	return cfg, nil
 }
 
 func setupLogger(env string) *slog.Logger {

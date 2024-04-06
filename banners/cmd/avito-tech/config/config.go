@@ -1,6 +1,13 @@
 package config
 
-import "time"
+import (
+	"flag"
+	"fmt"
+	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/joho/godotenv"
+	"log"
+	"time"
+)
 
 type Config struct {
 	Env          string            `yaml:"env" env-default:"dev"`
@@ -33,4 +40,21 @@ type StorageConfig struct {
 	SSLMode               string        `yaml:"ssl_mode"`
 	ConnectionAttempts    int           `yaml:"connection_attempts"`
 	InitializationTimeout time.Duration `yaml:"initialization_timeout"`
+}
+
+func New() (*Config, error) {
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("No .env file found")
+	}
+
+	cfg := NewDefaultConfig()
+
+	configPath := flag.String("config", "", "config path")
+	flag.Parse()
+
+	if err := cleanenv.ReadConfig(*configPath, cfg); err != nil {
+		return nil, fmt.Errorf("can't load config: %w", err)
+	}
+
+	return cfg, nil
 }

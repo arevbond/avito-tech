@@ -1,9 +1,9 @@
 package application
 
 import (
-	"avito-tech/cmd/avito-tech/config"
-	"avito-tech/internal/service/banner"
-	"avito-tech/internal/storage/postgres"
+	"banners/cmd/avito-tech/config"
+	"banners/internal/service/banner"
+	"banners/internal/storage/postgres"
 	"context"
 	"fmt"
 	"log/slog"

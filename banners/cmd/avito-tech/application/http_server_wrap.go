@@ -1,7 +1,7 @@
 package application
 
 import (
-	"avito-tech/cmd/avito-tech/config"
+	"banners/cmd/avito-tech/config"
 	"context"
 	"errors"
 	"fmt"

@@ -1,7 +1,7 @@
 package banner
 
 import (
-	"avito-tech/internal/storage"
+	"banners/internal/storage"
 )
 
 type Service interface {

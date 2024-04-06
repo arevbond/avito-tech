@@ -1,7 +1,7 @@
 package postgres
 
 import (
-	"avito-tech/cmd/avito-tech/config"
+	"banners/cmd/avito-tech/config"
 	"fmt"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
