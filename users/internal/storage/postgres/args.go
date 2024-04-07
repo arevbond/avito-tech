@@ -4,7 +4,7 @@ import "strings"
 
 const (
 	userTable  = "users"
-	tokenTable = "token"
+	tokenTable = "tokens"
 )
 
 const (

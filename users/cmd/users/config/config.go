@@ -11,6 +11,11 @@ import (
 type Config struct {
 	Env     string        `yaml:"env"`
 	Storage StorageConfig `yaml:"storage"`
+	Server  ServerConfig  `yaml:"server"`
+}
+
+type ServerConfig struct {
+	Address string `yaml:"address"`
 }
 
 type StorageConfig struct {

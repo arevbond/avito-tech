@@ -9,7 +9,7 @@ import (
 const (
 	notFoundMessage      string = "not found"
 	notExistUserMessage  string = "user doesn't exist"
-	internalErrorMessage string = "internal error"
+	InternalErrorMessage string = "internal error"
 )
 
 type ErrorResult struct {
@@ -25,7 +25,7 @@ func (e *ErrorResult) Error() string {
 func WrapInternalError(err error) *ErrorResult {
 	return &ErrorResult{
 		Err:        err,
-		Msg:        internalErrorMessage,
+		Msg:        InternalErrorMessage,
 		StatusCode: http.StatusInternalServerError,
 	}
 }
@@ -45,4 +45,17 @@ func WrapSqlError(err error) error {
 	default:
 		return WrapInternalError(err)
 	}
+}
+
+func FromError(err error) (*ErrorResult, bool) {
+	if err == nil {
+		return nil, false
+	}
+
+	var result *ErrorResult
+	ok := errors.As(err, &result)
+	if !ok {
+		return nil, false
+	}
+	return result, true
 }

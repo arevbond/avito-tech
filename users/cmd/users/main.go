@@ -1,13 +1,14 @@
 package main
 
 import (
-	"context"
-	"fmt"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"users/cmd/users/config"
-	"users/internal/models"
+	"users/internal/publicapi"
 	"users/internal/storage/postgres"
 )
 
@@ -29,16 +30,26 @@ func main() {
 		log.Error("can't init storage", "error", err)
 		os.Exit(1)
 	}
-	user, err := db.CreateUser(context.Background(), &models.UserRegister{
-		"adaskdaskdklasmd1",
-		"nikita",
-		"asdkjahsjdjkhsajdas",
-		true,
-	})
+
+	//user, err := db.CreateUser(context.Background(), &models.UserRegister{
+	//	"adaskdaskdklasmd1",
+	//	"nikita",
+	//	"asdkjahsjdjkhsajdas",
+	//	true,
+	//})
+	//if err != nil {
+	//	log.Error("can't create user", "error", err)
+	//}
+
+	router := chi.NewRouter()
+	router.Use(middleware.Recoverer)
+	router.Mount("/", publicapi.Routes(log, db))
+
+	err = http.ListenAndServe(cfg.Server.Address, router)
 	if err != nil {
-		log.Error("can't create user", "error", err)
+		log.Error("can't init http server", err)
+		os.Exit(1)
 	}
-	fmt.Println(user)
 }
 
 func setupLogger(env string) *slog.Logger {
