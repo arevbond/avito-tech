@@ -85,7 +85,7 @@ func (h *Handler) VerifyToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) IsAdmin(w http.ResponseWriter, r *http.Request) {
-	handlerRequest := func() (*verifyTokenResponse, error) {
+	handlerRequest := func() (*isAdminResponse, error) {
 		ctx := r.Context()
 
 		request, err := parseJSONRequest[tokenRequest](r)
@@ -105,7 +105,7 @@ func (h *Handler) IsAdmin(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, fmt.Errorf("verify token service: %w", err)
 		}
-		return &verifyTokenResponse{Valid: result}, nil
+		return &isAdminResponse{IsAdmin: result}, nil
 	}
 	response, err := handlerRequest()
 	if err != nil {
