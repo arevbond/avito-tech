@@ -16,4 +16,6 @@ type UserRepository interface {
 
 type TokenRepository interface {
 	CreateToken(ctx context.Context, params *models.Token) (*models.Token, error)
+	VerifyToken(ctx context.Context, token string) (bool, error)
+	IsAdmin(ctx context.Context, token string) (bool, error)
 }

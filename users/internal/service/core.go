@@ -11,6 +11,8 @@ import (
 
 type Service interface {
 	Register(ctx context.Context, params *RegisterParams) (*models.Token, error)
+	VerifyToken(ctx context.Context, params *TokenParams) (bool, error)
+	IsAdmin(ctx context.Context, params *TokenParams) (bool, error)
 }
 
 type UserService struct {
@@ -63,4 +65,24 @@ func (s *UserService) Register(ctx context.Context, params *RegisterParams) (*mo
 	}
 
 	return token, nil
+}
+
+type TokenParams struct {
+	Token string
+}
+
+func (s UserService) VerifyToken(ctx context.Context, params *TokenParams) (bool, error) {
+	result, err := s.db.VerifyToken(ctx, params.Token)
+	if err != nil {
+		return false, fmt.Errorf("can't verify token: %w", err)
+	}
+	return result, nil
+}
+
+func (s UserService) IsAdmin(ctx context.Context, params *TokenParams) (bool, error) {
+	result, err := s.db.IsAdmin(ctx, params.Token)
+	if err != nil {
+		return false, fmt.Errorf("can't check is admin token: %w", err)
+	}
+	return result, nil
 }

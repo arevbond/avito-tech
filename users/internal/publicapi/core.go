@@ -21,6 +21,8 @@ func Routes(log *slog.Logger, db storage.Storage) chi.Router {
 	r := chi.NewRouter()
 	handler := &Handler{log, service.New(db, log)}
 	r.Post("/register", handler.Register)
+	r.Post("/verify-token", handler.VerifyToken)
+	r.Post("/is-admin", handler.IsAdmin)
 	return r
 }
 
@@ -43,10 +45,6 @@ func (h *Handler) writeError(w http.ResponseWriter, err error) {
 	if err != nil {
 		http.Error(w, utils.InternalErrorMessage, http.StatusInternalServerError)
 	}
-}
-
-type tokenRequest struct {
-	Token string `json:"token"`
 }
 
 func (h *Handler) writeResponse(w http.ResponseWriter, response any) {
