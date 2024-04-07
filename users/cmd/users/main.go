@@ -31,16 +31,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	//user, err := db.CreateUser(context.Background(), &models.UserRegister{
-	//	"adaskdaskdklasmd1",
-	//	"nikita",
-	//	"asdkjahsjdjkhsajdas",
-	//	true,
-	//})
-	//if err != nil {
-	//	log.Error("can't create user", "error", err)
-	//}
-
 	router := chi.NewRouter()
 	router.Use(middleware.Recoverer)
 	router.Mount("/", publicapi.Routes(log, db))
