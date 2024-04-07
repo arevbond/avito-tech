@@ -50,7 +50,7 @@ func (s *PGStorage) Slave() *sqlx.DB {
 func newPGCluster(cfg config.StorageConfig) (*hasql.Cluster, error) {
 	nodes := make([]hasql.Node, 0, len(cfg.Hosts))
 	for _, host := range cfg.Hosts {
-		connString := constructConnectionString(host, cfg)
+		connString := createDBConnectionString(host, cfg)
 		fmt.Println(connString)
 		parsedConnConfig, err := pgx.ParseConfig(connString)
 		if err != nil {
@@ -77,7 +77,7 @@ func newPGCluster(cfg config.StorageConfig) (*hasql.Cluster, error) {
 	return cluster, nil
 }
 
-func constructConnectionString(host string, cfg config.StorageConfig) string {
+func createDBConnectionString(host string, cfg config.StorageConfig) string {
 	connectionMap := map[string]string{
 		"host":     host,
 		"port":     strconv.Itoa(cfg.Port),
@@ -89,7 +89,7 @@ func constructConnectionString(host string, cfg config.StorageConfig) string {
 		connectionMap["sslmode"] = cfg.SSLMode
 	}
 
-	connectionSlice := make([]string, len(connectionMap))
+	connectionSlice := make([]string, 0, len(connectionMap))
 	for k, v := range connectionMap {
 		connectionSlice = append(connectionSlice, fmt.Sprintf("%s=%s", k, v))
 	}
