@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS features (
 );
 
 CREATE TABLE IF NOT EXISTS banners (
-    ID SERIAL NOT NULL,
+    id SERIAL NOT NULL,
     feature_id INT,
     content JSONB,
     is_active BOOLEAN,

@@ -51,7 +51,6 @@ func newPGCluster(cfg config.StorageConfig) (*hasql.Cluster, error) {
 	nodes := make([]hasql.Node, 0, len(cfg.Hosts))
 	for _, host := range cfg.Hosts {
 		connString := createDBConnectionString(host, cfg)
-		fmt.Println(connString)
 		parsedConnConfig, err := pgx.ParseConfig(connString)
 		if err != nil {
 			return nil, fmt.Errorf("can't parse connection config: %w", err)

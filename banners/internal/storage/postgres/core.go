@@ -33,3 +33,7 @@ func (s *Storage) Master() sqlx.ExtContext {
 func (s *Storage) Slave() sqlx.ExtContext {
 	return s.storage.Slave()
 }
+
+func (s *Storage) BeginTransaction() (*sqlx.Tx, error) {
+	return s.storage.Master().Beginx()
+}
