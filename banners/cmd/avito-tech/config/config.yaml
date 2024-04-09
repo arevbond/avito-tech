@@ -22,3 +22,7 @@ storage:
   username: "avito-tech-local-admin"
   ssl_mode: "disable"
   connection_attempts: 3
+
+users_service:
+  address: "localhost"
+  port: 9080

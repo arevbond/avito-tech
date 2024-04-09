@@ -10,11 +10,12 @@ import (
 )
 
 type Config struct {
-	Env          string            `yaml:"env" env-default:"dev"`
-	Application  ApplicationConfig `yaml:"application"`
-	PublicServer ServerConfig      `yaml:"public_server"`
-	AdminServer  ServerConfig      `yaml:"admin_server"`
-	Storage      StorageConfig     `yaml:"storage"`
+	Env          string             `yaml:"env" env-default:"dev"`
+	Application  ApplicationConfig  `yaml:"application"`
+	PublicServer ServerConfig       `yaml:"public_server"`
+	AdminServer  ServerConfig       `yaml:"admin_server"`
+	Storage      StorageConfig      `yaml:"storage"`
+	UsersService UsersServiceConfig `yaml:"users_service"`
 }
 
 type ApplicationConfig struct {
@@ -40,6 +41,11 @@ type StorageConfig struct {
 	SSLMode               string        `yaml:"ssl_mode"`
 	ConnectionAttempts    int           `yaml:"connection_attempts"`
 	InitializationTimeout time.Duration `yaml:"initialization_timeout"`
+}
+
+type UsersServiceConfig struct {
+	Address string `yaml:"address"`
+	Port    int    `json:"port"`
 }
 
 func New() (*Config, error) {

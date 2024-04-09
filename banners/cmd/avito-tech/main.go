@@ -2,9 +2,7 @@ package main
 
 import (
 	"banners/cmd/avito-tech/config"
-	"banners/internal/models"
-	"banners/internal/storage/postgres"
-	"context"
+	"banners/internal/clients"
 	"fmt"
 	"log"
 	"log/slog"
@@ -24,63 +22,21 @@ func main() {
 
 	log := setupLogger(cfg.Env)
 
-	db, err := postgres.New(log, cfg.Storage)
+	//_, err := postgres.New(log, cfg.Storage)
+	//if err != nil {
+	//	log.Error("can't init storage", "error", err)
+	//	os.Exit(1)
+	//}
+
+	usersClient := clients.New(cfg.UsersService)
+	isVerified, err := usersClient.VerifyToken("eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhc2Rhc2QifQ.jPX4lm8T8fmI6-8-1G17FShhnqSyD5tijv127AvorcAI4uS_wB1uzOzZMNuYRR9_tWhMgmy3GT0oRu3z4NdJBQ")
+	fmt.Println(isVerified)
+	isAdmin, err := usersClient.IsAdmin("eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhc2Rhc2QifQ.jPX4lm8T8fmI6-8-1G17FShhnqSyD5tijv127AvorcAI4uS_wB1uzOzZMNuYRR9_tWhMgmy3GT0oRu3z4NdJBQ")
 	if err != nil {
-		log.Error("can't init storage", "error", err)
+		log.Error("error", "error", err)
 		os.Exit(1)
 	}
-	//db.CreateTag(context.Background(), &models.Tag{2, "2"})
-	//db.CreateTag(context.Background(), &models.Tag{3, "3"})
-
-	//id, err := db.CreateBanner(context.Background(), &models.CreateBanner{
-	//	TagIDS:    []int{1, 2},
-	//	FeatureID: 1,
-	//	Content: models.Content{
-	//		Title: "title",
-	//		Text:  "text",
-	//		Url:   "url",
-	//	},
-	//	IsActive: false,
-	//})
-	//if err != nil {
-	//	log.Error("can't create banner", "error", err)
-	//	os.Exit(1)
-	//}
-	//log.Info("success create banner", slog.Int("id", id))
-
-	//err = db.UpdateBanner(context.Background(), 1, &models.CreateBanner{
-	//	TagIDS:    []int{1},
-	//	FeatureID: 1,
-	//	Content: models.Content{
-	//		Title: "title",
-	//		Text:  "text",
-	//		Url:   "url",
-	//	},
-	//	IsActive: false,
-	//})
-	//if err != nil {
-	//	log.Error("can't update banner", "error", err)
-	//	os.Exit(1)
-	//}
-	//log.Info("success update banner", slog.Int("id", 1))
-	//
-	//err = db.DeleteBanner(context.Background(), 1)
-	//if err != nil {
-	//	log.Error("can't delete banner", "error", err)
-	//	os.Exit(1)
-	//}
-	//log.Info("success delete banner")
-	banners, err := db.GetBanners(context.Background(), &models.BannerParams{
-		FeatureID: 0,
-		TagID:     1,
-		Limit:     10,
-		Offset:    0,
-	})
-	if err != nil {
-		log.Error("can't get banners", "error", err)
-		os.Exit(1)
-	}
-	fmt.Println(banners)
+	fmt.Println(isAdmin)
 	//app := application.New(cfg, log)
 	//if err = app.Run(); err != nil {
 	//	log.Error("application stopped with error", "error", err)

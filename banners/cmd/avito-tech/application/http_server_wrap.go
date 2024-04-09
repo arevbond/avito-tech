@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"log/slog"
 	"net/http"
 )
@@ -101,7 +102,9 @@ func (h *HTTPServerWrap) GracefulStop() []func() error {
 func NewNetHTTPServer(log *slog.Logger, port int, incomeMux *chi.Mux) *http.Server {
 	mux := chi.NewMux()
 	mux.Use(loggerMiddleware(log))
-	//mux.Use(middleware.Recoverer)
+	//mux.Use(middleware.RequestID)
+	mux.Use(middleware.Recoverer)
+	mux.Use(middleware.URLFormat)
 	if incomeMux != nil {
 		mux.Mount("/", incomeMux)
 	}
