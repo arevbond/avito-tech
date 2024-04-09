@@ -13,9 +13,44 @@ import (
 	"time"
 )
 
-func (s *Storage) GetBanners(ctx context.Context, params *models.BannerParams) ([]*models.Banner, error) {
-	banners := []*bannerDBEntity{}
-	err := sqlx.SelectContext(ctx, s.Master(), &banners, queryAllBannersWithFilters, params.TagID, params.FeatureID,
+func (s *Storage) GetBanner(ctx context.Context, params *models.BannerParams) (*models.Banner, error) {
+	sql, args, err := sq.Select(
+		bannerTable+"."+fieldID,
+		bannerTable+"."+fieldFeatureID,
+		bannerTable+"."+fieldContent,
+		bannerTable+"."+fieldIsActive,
+		bannerTable+"."+fieldCreatedAt,
+		bannerTable+"."+fieldUpdatedAt,
+	).From(bannerTable).
+		Join(
+			bannerToTagsTable + " ON " + bannerTable + "." + fieldID + " = " + bannerToTagsTable + "." + fieldBannerID,
+		).
+		Where(
+			sq.Eq{
+				bannerTable + "." + fieldFeatureID:   params.FeatureID,
+				bannerToTagsTable + "." + fieldTagID: params.TagID,
+			},
+		).
+		PlaceholderFormat(sq.Dollar).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("can't create sql: %w", err)
+	}
+
+	var banner bannerDBEntity
+	err = sqlx.GetContext(ctx, s.Slave(), &banner, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("can't get banner: %w", err)
+	}
+	result, err := banner.toModel()
+	if err != nil {
+		return nil, fmt.Errorf("can't convert db entity to model: %w", err)
+	}
+	return result, nil
+}
+
+func (s *Storage) GetBanners(ctx context.Context, params *models.BannersParams) ([]*models.Banner, error) {
+	banners := []*bannerWithTagsDBEntity{}
+	err := sqlx.SelectContext(ctx, s.Slave(), &banners, queryAllBannersWithFilters, params.TagID, params.FeatureID,
 		params.Offset, params.Limit)
 	if err != nil {
 		return nil, fmt.Errorf("can't get banners: %w", err)
@@ -174,16 +209,41 @@ func (s *Storage) DeleteBanner(ctx context.Context, bannerID int) error {
 }
 
 type bannerDBEntity struct {
-	ID        int       `json:"banner_id" db:"id"`
-	TagIDs    string    `json:"tag_ids" db:"tag_ids"`
-	FeatureID int       `json:"feature_id" db:"feature_id"`
-	Content   []byte    `json:"content" db:"content"`
-	IsActive  bool      `json:"is_active" db:"is_active"`
-	CreatedAt time.Time `json:"create_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID        int       `db:"id"`
+	FeatureID int       `db:"feature_id"`
+	Content   []byte    `db:"content"`
+	IsActive  bool      `db:"is_active"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
 }
 
-func (b *bannerDBEntity) toModel() (*models.Banner, error) {
+func (b bannerDBEntity) toModel() (*models.Banner, error) {
+	var content models.Content
+	err := json.Unmarshal(b.Content, &content)
+	if err != nil {
+		return nil, fmt.Errorf("can't unmarshal json: %w", err)
+	}
+	return &models.Banner{
+		ID:        b.ID,
+		FeatureID: b.FeatureID,
+		Content:   content,
+		IsActive:  b.IsActive,
+		CreatedAt: b.CreatedAt,
+		UpdatedAt: b.UpdatedAt,
+	}, nil
+}
+
+type bannerWithTagsDBEntity struct {
+	ID        int       `db:"id"`
+	TagIDs    string    `db:"tag_ids"`
+	FeatureID int       `db:"feature_id"`
+	Content   []byte    `db:"content"`
+	IsActive  bool      `db:"is_active"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+func (b *bannerWithTagsDBEntity) toModel() (*models.Banner, error) {
 	tagIDs := b.parseIntArray(b.TagIDs)
 	var content models.Content
 	err := json.Unmarshal(b.Content, &content)
@@ -201,7 +261,7 @@ func (b *bannerDBEntity) toModel() (*models.Banner, error) {
 	}, nil
 }
 
-func (b bannerDBEntity) parseIntArray(input string) []int {
+func (b *bannerWithTagsDBEntity) parseIntArray(input string) []int {
 	re := regexp.MustCompile(`\d+`)
 	matches := re.FindAllString(input, -1)
 

@@ -35,9 +35,14 @@ type Content struct {
 	Url   string `json:"url" db:"url"`
 }
 
-type BannerParams struct {
-	FeatureID int `db:"feature_id"`
-	TagID     int `db:"tag_id"`
+type BannersParams struct {
+	FeatureID int
+	TagID     int
 	Offset    int
 	Limit     int
+}
+
+type BannerParams struct {
+	FeatureID int
+	TagID     int
 }
