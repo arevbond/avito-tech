@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"banners/internal/models"
+	"banners/internal/utils"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -33,17 +34,17 @@ func (s *Storage) GetBanner(ctx context.Context, params *models.BannerParams) (*
 		).
 		PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
-		return nil, fmt.Errorf("can't create sql: %w", err)
+		return nil, utils.WrapInternalError(fmt.Errorf("can't create sql: %w", err))
 	}
 
 	var banner bannerDBEntity
 	err = sqlx.GetContext(ctx, s.Slave(), &banner, sql, args...)
 	if err != nil {
-		return nil, fmt.Errorf("can't get banner: %w", err)
+		return nil, utils.WrapSqlError(fmt.Errorf("can't get banner: %w", err))
 	}
 	result, err := banner.toModel()
 	if err != nil {
-		return nil, fmt.Errorf("can't convert db entity to model: %w", err)
+		return nil, utils.WrapInternalError(fmt.Errorf("can't convert db entity to model: %w", err))
 	}
 	return result, nil
 }
@@ -53,7 +54,7 @@ func (s *Storage) GetBanners(ctx context.Context, params *models.BannersParams) 
 	err := sqlx.SelectContext(ctx, s.Slave(), &banners, queryAllBannersWithFilters, params.TagID, params.FeatureID,
 		params.Offset, params.Limit)
 	if err != nil {
-		return nil, fmt.Errorf("can't get banners: %w", err)
+		return nil, utils.WrapSqlError(fmt.Errorf("can't get banners: %w", err))
 	}
 
 	result := make([]*models.Banner, 0, len(banners))
@@ -61,6 +62,7 @@ func (s *Storage) GetBanners(ctx context.Context, params *models.BannersParams) 
 		bannerModel, err := banner.toModel()
 		if err != nil {
 			s.storage.log.Error("can't get banner model from db entity", "error", err)
+			continue
 		}
 		result = append(result, bannerModel)
 	}
@@ -82,13 +84,13 @@ func (s *Storage) CreateBanner(ctx context.Context, params *models.CreateBanner)
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
-		return -1, fmt.Errorf("can't create query: %w", err)
+		return -1, utils.WrapInternalError(fmt.Errorf("can't create query: %w", err))
 	}
 
 	var bannerID int
 	err = tx.GetContext(ctx, &bannerID, insertBannerQuery, insertBannerArgs...)
 	if err != nil {
-		return -1, fmt.Errorf("can't insert banner into %s: %w", bannerTable, err)
+		return -1, utils.WrapSqlError(fmt.Errorf("can't insert banner into %s: %w", bannerTable, err))
 	}
 
 	builder := sq.Insert(bannerToTagsTable).Columns(bannerToTagsFields...)
@@ -97,7 +99,7 @@ func (s *Storage) CreateBanner(ctx context.Context, params *models.CreateBanner)
 	}
 	insertRelatedTagsQuery, insertRelatedTagsArgs, err2 := builder.PlaceholderFormat(sq.Dollar).ToSql()
 	if err2 != nil {
-		return -1, fmt.Errorf("can't create query: %w", err)
+		return -1, utils.WrapSqlError(fmt.Errorf("can't create query: %w", err))
 	}
 
 	_, err = tx.ExecContext(ctx, insertRelatedTagsQuery, insertRelatedTagsArgs...)
@@ -108,7 +110,7 @@ func (s *Storage) CreateBanner(ctx context.Context, params *models.CreateBanner)
 
 	err = tx.Commit()
 	if err != nil {
-		return -1, fmt.Errorf("can't commit transactions: %w", err)
+		return -1, utils.WrapSqlError(fmt.Errorf("can't commit transactions: %w", err))
 	}
 	return bannerID, nil
 }
@@ -116,7 +118,7 @@ func (s *Storage) CreateBanner(ctx context.Context, params *models.CreateBanner)
 func (s *Storage) UpdateBanner(ctx context.Context, id int, params *models.CreateBanner) error {
 	tx, err := s.BeginTransaction()
 	if err != nil {
-		return fmt.Errorf("can't begin transaction: %w", err)
+		return utils.WrapInternalError(fmt.Errorf("can't begin transaction: %w", err))
 	}
 	defer tx.Rollback()
 
@@ -130,22 +132,22 @@ func (s *Storage) UpdateBanner(ctx context.Context, id int, params *models.Creat
 			fieldID: id,
 		}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
-		return fmt.Errorf("can't create updateBannerQuery: %w", err)
+		return utils.WrapInternalError(fmt.Errorf("can't create updateBannerQuery: %w", err))
 	}
 
 	_, err = tx.ExecContext(ctx, updateBannerQuery, updateBannerArgs...)
 	if err != nil {
-		return fmt.Errorf("can't update banner in %s: %w", bannerTable, err)
+		return utils.WrapInternalError(fmt.Errorf("can't update banner in %s: %w", bannerTable, err))
 	}
 
 	deleteOldTagsQuery, deleteOldTagsArgs, err2 := sq.Delete(bannerToTagsTable).Where(sq.Eq{fieldBannerID: id}).
 		PlaceholderFormat(sq.Dollar).ToSql()
 	if err2 != nil {
-		return fmt.Errorf("can't create updateBannerQuery: %w", err)
+		return utils.WrapSqlError(fmt.Errorf("can't create updateBannerQuery: %w", err))
 	}
 	_, err = tx.ExecContext(ctx, deleteOldTagsQuery, deleteOldTagsArgs...)
 	if err != nil {
-		return fmt.Errorf("can't delete old relationships: %w", err)
+		return utils.WrapSqlError(fmt.Errorf("can't delete old relationships: %w", err))
 	}
 
 	builder := sq.Insert(bannerToTagsTable).Columns(bannerToTagsFields...)
@@ -154,18 +156,18 @@ func (s *Storage) UpdateBanner(ctx context.Context, id int, params *models.Creat
 	}
 	insertTagQuery, insertTagArgs, err3 := builder.PlaceholderFormat(sq.Dollar).ToSql()
 	if err3 != nil {
-		return fmt.Errorf("can't create updateBannerQuery: %w", err3)
+		return utils.WrapInternalError(fmt.Errorf("can't create updateBannerQuery: %w", err3))
 	}
 
 	_, err = tx.ExecContext(ctx, insertTagQuery, insertTagArgs...)
 	if err != nil {
-		return fmt.Errorf("can't insert banner_id and tag_id into %s: %w",
-			bannerToTagsTable, err)
+		return utils.WrapInternalError(fmt.Errorf("can't insert banner_id and tag_id into %s: %w",
+			bannerToTagsTable, err))
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("can't commit transactions: %w", err)
+		return utils.WrapInternalError(fmt.Errorf("can't commit transactions: %w", err))
 	}
 	return nil
 }
@@ -173,7 +175,7 @@ func (s *Storage) UpdateBanner(ctx context.Context, id int, params *models.Creat
 func (s *Storage) DeleteBanner(ctx context.Context, bannerID int) error {
 	tx, err := s.BeginTransaction()
 	if err != nil {
-		return fmt.Errorf("can't begin transaction: %w", err)
+		return utils.WrapInternalError(fmt.Errorf("can't begin transaction: %w", err))
 	}
 	defer tx.Rollback()
 
@@ -181,28 +183,28 @@ func (s *Storage) DeleteBanner(ctx context.Context, bannerID int) error {
 		fieldBannerID: bannerID,
 	}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
-		return fmt.Errorf("can't create sql: %w", err)
+		return utils.WrapInternalError(fmt.Errorf("can't create sql: %w", err))
 	}
 
 	_, err = tx.ExecContext(ctx, deleteTagQuery, tagQueryArgs...)
 	if err != nil {
-		return fmt.Errorf("can't delete related tags: %w", err)
+		return utils.WrapInternalError(fmt.Errorf("can't delete related tags: %w", err))
 	}
 
 	deleteBannerQuery, deleteBannerArgs, err2 := sq.Delete(bannerTable).Where(sq.Eq{fieldID: bannerID}).
 		PlaceholderFormat(sq.Dollar).ToSql()
 	if err2 != nil {
-		return fmt.Errorf("can't create sql: %w", err2)
+		return utils.WrapInternalError(fmt.Errorf("can't create sql: %w", err2))
 	}
 
 	_, err = tx.ExecContext(ctx, deleteBannerQuery, deleteBannerArgs...)
 	if err != nil {
-		return fmt.Errorf("can't delete banner: %w", err)
+		return utils.WrapInternalError(fmt.Errorf("can't delete banner: %w", err))
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("can't commit transaction: %w", err)
+		return utils.WrapInternalError(fmt.Errorf("can't commit transaction: %w", err))
 	}
 
 	return nil

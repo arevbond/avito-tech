@@ -1,7 +1,7 @@
 package publicapi
 
 import (
-	"avito-tech/internal/service/banner"
+	"banners/internal/service/banner"
 	"log/slog"
 )
 
