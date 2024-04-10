@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"banners/internal/service"
 	"database/sql"
 	"errors"
 	"net/http"
@@ -65,6 +66,31 @@ func FromError(err error) (*ErrorResult, bool) {
 	}
 
 	return result, true
+}
+
+func WrapServiceError(err error) *ErrorResult {
+	switch err {
+	case service.ErrUnauthorized:
+		return &ErrorResult{
+			Err:        err,
+			Msg:        err.Error(),
+			StatusCode: 401,
+		}
+	case service.ErrNotFound:
+		return &ErrorResult{
+			Err:        err,
+			Msg:        err.Error(),
+			StatusCode: 404,
+		}
+	case service.ErrForbidden:
+		return &ErrorResult{
+			Err:        err,
+			Msg:        err.Error(),
+			StatusCode: 403,
+		}
+	default:
+		return WrapInternalError(err)
+	}
 }
 
 func WrapSqlError(err error) error {

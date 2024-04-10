@@ -69,10 +69,10 @@ func (s *Storage) GetBanners(ctx context.Context, params *models.BannersParams) 
 	return result, nil
 }
 
-func (s *Storage) CreateBanner(ctx context.Context, params *models.CreateBanner) (int, error) {
+func (s *Storage) CreateBanner(ctx context.Context, params *models.CreateBanner) (*models.Banner, error) {
 	tx, err := s.BeginTransaction()
 	if err != nil {
-		return -1, fmt.Errorf("can't begin transaction: %w", err)
+		return nil, fmt.Errorf("can't begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -80,39 +80,44 @@ func (s *Storage) CreateBanner(ctx context.Context, params *models.CreateBanner)
 	insertBannerQuery, insertBannerArgs, err := sq.Insert(bannerTable).
 		Columns(bannerFields[1:]...).
 		Values(params.FeatureID, params.Content, params.IsActive, now, now).
-		Suffix(returningID).
+		Suffix(returningBanner).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
-		return -1, utils.WrapInternalError(fmt.Errorf("can't create query: %w", err))
+		return nil, utils.WrapInternalError(fmt.Errorf("can't create query: %w", err))
 	}
 
-	var bannerID int
-	err = tx.GetContext(ctx, &bannerID, insertBannerQuery, insertBannerArgs...)
+	var banner bannerDBEntity
+	err = tx.GetContext(ctx, &banner, insertBannerQuery, insertBannerArgs...)
 	if err != nil {
-		return -1, utils.WrapSqlError(fmt.Errorf("can't insert banner into %s: %w", bannerTable, err))
+		return nil, utils.WrapSqlError(fmt.Errorf("can't insert banner into %s: %w", bannerTable, err))
 	}
 
 	builder := sq.Insert(bannerToTagsTable).Columns(bannerToTagsFields...)
 	for _, tgID := range params.TagIDS {
-		builder = builder.Values(bannerID, tgID)
+		builder = builder.Values(banner.ID, tgID)
 	}
 	insertRelatedTagsQuery, insertRelatedTagsArgs, err2 := builder.PlaceholderFormat(sq.Dollar).ToSql()
 	if err2 != nil {
-		return -1, utils.WrapSqlError(fmt.Errorf("can't create query: %w", err))
+		return nil, utils.WrapSqlError(fmt.Errorf("can't create query: %w", err))
 	}
 
 	_, err = tx.ExecContext(ctx, insertRelatedTagsQuery, insertRelatedTagsArgs...)
 	if err != nil {
-		return -1, fmt.Errorf("can't insert values into %s: %w",
+		return nil, fmt.Errorf("can't insert values into %s: %w",
 			bannerToTagsTable, err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return -1, utils.WrapSqlError(fmt.Errorf("can't commit transactions: %w", err))
+		return nil, utils.WrapSqlError(fmt.Errorf("can't commit transactions: %w", err))
 	}
-	return bannerID, nil
+
+	result, err := banner.toModel()
+	if err != nil {
+		return nil, utils.WrapSqlError(fmt.Errorf("can't convert db entity to model: %w", err))
+	}
+	return result, nil
 }
 
 func (s *Storage) UpdateBanner(ctx context.Context, id int, params *models.CreateBanner) error {

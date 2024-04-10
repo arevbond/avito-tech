@@ -2,7 +2,9 @@ package application
 
 import (
 	"banners/cmd/avito-tech/config"
-	"banners/internal/service/banner"
+	"banners/internal/clients"
+	"banners/internal/service"
+	"banners/internal/storage/cache"
 	"banners/internal/storage/postgres"
 	"context"
 	"fmt"
@@ -45,7 +47,7 @@ func (a *App) Run() error {
 }
 
 type env struct {
-	bannerService banner.Service
+	bannerService service.Service
 }
 
 func (a *App) constructEnv(ctx context.Context) (*env, error) {
@@ -56,8 +58,14 @@ func (a *App) constructEnv(ctx context.Context) (*env, error) {
 
 	a.Closer.Add(db.Close)
 
-	bannerService := &banner.ServiceImpl{
-		Storage: db,
+	c := cache.New(a.Config.Redis)
+	a.Closer.Add(c.Close)
+
+	bannerService := &service.ServiceImpl{
+		Storage:     db,
+		Cache:       c,
+		UserService: clients.New(a.Config.UsersService),
+		Log:         a.Log,
 	}
 
 	return &env{

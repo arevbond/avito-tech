@@ -30,9 +30,9 @@ type CreateBanner struct {
 }
 
 type Content struct {
-	Title string `json:"title" db:"title"`
-	Text  string `json:"text" db:"text"`
-	Url   string `json:"url" db:"url"`
+	Title string `db:"title"`
+	Text  string `db:"text"`
+	Url   string `db:"url"`
 }
 
 type BannersParams struct {

@@ -1,5 +1,7 @@
 package postgres
 
+import "strings"
+
 const (
 	featureTable      = "features"
 	bannerTable       = "banners"
@@ -43,6 +45,8 @@ var (
 	}
 
 	returningID = returning + fieldID
+
+	returningBanner = returning + strings.Join(bannerFields, separator)
 )
 
 var (

@@ -23,6 +23,9 @@ storage:
   ssl_mode: "disable"
   connection_attempts: 3
 
+redis:
+  address: "localhost:6379"
+
 users_service:
   address: "localhost"
   port: 9080

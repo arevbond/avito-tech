@@ -13,6 +13,13 @@ services:
     restart: unless-stopped
 #    networks:
 #      - mynet
+
+  cache:
+    image: redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+
   pgAdmin:
     container_name: "avito_pg-admin"
     image: dpage/pgadmin4

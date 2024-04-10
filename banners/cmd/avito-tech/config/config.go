@@ -16,6 +16,7 @@ type Config struct {
 	AdminServer  ServerConfig       `yaml:"admin_server"`
 	Storage      StorageConfig      `yaml:"storage"`
 	UsersService UsersServiceConfig `yaml:"users_service"`
+	Redis        RedisConfig        `yaml:"redis"`
 }
 
 type ApplicationConfig struct {
@@ -41,6 +42,11 @@ type StorageConfig struct {
 	SSLMode               string        `yaml:"ssl_mode"`
 	ConnectionAttempts    int           `yaml:"connection_attempts"`
 	InitializationTimeout time.Duration `yaml:"initialization_timeout"`
+}
+
+type RedisConfig struct {
+	Address  string `yaml:"address"`
+	Password string `env:"REDIS_PASSWORD"`
 }
 
 type UsersServiceConfig struct {
