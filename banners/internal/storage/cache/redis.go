@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"time"
 )
 
 var (
@@ -76,6 +77,81 @@ func (c *Cache) AddBanner(ctx context.Context, banner *models.Banner) error {
 	err = c.Client.SAdd(ctx, fmt.Sprintf("feature:%d:banners", banner.FeatureID), banner.ID).Err()
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (c *Cache) UpdateBanner(ctx context.Context, id int, banner *models.CreateBanner) error {
+	oldBannerData, err := c.Client.HGet(ctx, fmt.Sprintf("banner:%d", id), "data").Result()
+	if err != nil {
+		return fmt.Errorf("can't get old banner from cache: %w", err)
+	}
+
+	var oldBanner models.Banner
+	err = json.Unmarshal([]byte(oldBannerData), &oldBanner)
+	if err != nil {
+		return fmt.Errorf("can't unmarshal old banner: %w", err)
+	}
+
+	err = c.DeleteBannerWithRelation(ctx, &oldBanner)
+	if err != nil {
+		return fmt.Errorf("can't delete old banner from cache: %w", err)
+	}
+
+	newBanner := &models.Banner{
+		ID:        id,
+		TagIDs:    banner.TagIDS,
+		FeatureID: banner.FeatureID,
+		Content:   banner.Content,
+		IsActive:  banner.IsActive,
+		CreatedAt: oldBanner.CreatedAt,
+		UpdatedAt: time.Now(),
+	}
+
+	err = c.AddBanner(ctx, newBanner)
+	if err != nil {
+		return fmt.Errorf("can't add new banner to cache: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Cache) DeleteBanner(ctx context.Context, bannerID int) error {
+	oldBannerData, err := c.Client.HGet(ctx, fmt.Sprintf("banner:%d", bannerID), "data").Result()
+	if err != nil {
+		return fmt.Errorf("can't get old banner from cache: %w", err)
+	}
+
+	var oldBanner models.Banner
+	err = json.Unmarshal([]byte(oldBannerData), &oldBanner)
+	if err != nil {
+		return fmt.Errorf("can't unmarshal old banner: %w", err)
+	}
+
+	err = c.DeleteBannerWithRelation(ctx, &oldBanner)
+	if err != nil {
+		return fmt.Errorf("can't delete old banner from cache: %w", err)
+	}
+	return nil
+}
+
+func (c *Cache) DeleteBannerWithRelation(ctx context.Context, banner *models.Banner) error {
+	err := c.Client.Del(ctx, fmt.Sprintf("banner:%d", banner.ID)).Err()
+	if err != nil {
+		return fmt.Errorf("can't delete banner data from cache: %w", err)
+	}
+
+	for _, tagID := range banner.TagIDs {
+		err = c.Client.SRem(ctx, fmt.Sprintf("tag:%d:banners", tagID), banner.ID).Err()
+		if err != nil {
+			return fmt.Errorf("can't remove banner ID from tag set: %w", err)
+		}
+	}
+
+	err = c.Client.SRem(ctx, fmt.Sprintf("feature:%d:banners", banner.FeatureID), banner.ID).Err()
+	if err != nil {
+		return fmt.Errorf("can't remove banner ID from feature set: %w", err)
 	}
 
 	return nil

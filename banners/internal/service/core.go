@@ -20,9 +20,11 @@ var (
 type Service interface {
 	UserBanner(ctx context.Context, params *UserBannerParams) (*models.Content, error)
 	CreateBanner(ctx context.Context, token string, banner *models.CreateBanner) (int, error)
+	UpdateBanner(ctx context.Context, token string, id int, updateBanner *models.CreateBanner) error
+	DeleteBanner(ctx context.Context, token string, id int) error
 }
 
-type ServiceImpl struct {
+type BannerService struct {
 	Storage     storage.Storage
 	Cache       *cache.Cache
 	UserService *clients.Users
@@ -36,7 +38,7 @@ type UserBannerParams struct {
 	Token           string
 }
 
-func (s *ServiceImpl) UserBanner(ctx context.Context, params *UserBannerParams) (*models.Content, error) {
+func (s *BannerService) UserBanner(ctx context.Context, params *UserBannerParams) (*models.Content, error) {
 	isValidToken, err := s.UserService.VerifyToken(params.Token)
 	if err != nil {
 		return nil, fmt.Errorf("can't verify token: %w", err)
@@ -97,7 +99,7 @@ func (s *ServiceImpl) UserBanner(ctx context.Context, params *UserBannerParams) 
 	return nil, ErrForbidden
 }
 
-func (s *ServiceImpl) CreateBanner(ctx context.Context, token string, createBanner *models.CreateBanner) (int, error) {
+func (s *BannerService) CreateBanner(ctx context.Context, token string, createBanner *models.CreateBanner) (int, error) {
 	isValidToken, err := s.UserService.VerifyToken(token)
 	if err != nil {
 		return -1, fmt.Errorf("can't verify token: %w", err)
@@ -123,4 +125,62 @@ func (s *ServiceImpl) CreateBanner(ctx context.Context, token string, createBann
 		s.Log.Error("can't insert banner into cache", "error", err)
 	}
 	return banner.ID, nil
+}
+
+func (s *BannerService) UpdateBanner(ctx context.Context, token string, id int, updateBanner *models.CreateBanner) error {
+	isValidToken, err := s.UserService.VerifyToken(token)
+	if err != nil {
+		return fmt.Errorf("can't verify token: %w", err)
+	}
+	if !isValidToken {
+		return ErrUnauthorized
+	}
+	isAdmin, err := s.UserService.IsAdmin(token)
+	if err != nil {
+		return fmt.Errorf("can't verify admin token: %w", err)
+	}
+	if !isAdmin {
+		return ErrForbidden
+	}
+
+	err = s.Storage.UpdateBanner(ctx, id, updateBanner)
+	if err != nil {
+		return fmt.Errorf("can't update banner: %w", err)
+	}
+
+	err = s.Cache.UpdateBanner(ctx, id, updateBanner)
+	if err != nil {
+		s.Log.Error("can''t update banner in cache", "error", err)
+	}
+
+	return nil
+}
+
+func (s *BannerService) DeleteBanner(ctx context.Context, token string, id int) error {
+	isValidToken, err := s.UserService.VerifyToken(token)
+	if err != nil {
+		return fmt.Errorf("can't verify token: %w", err)
+	}
+	if !isValidToken {
+		return ErrUnauthorized
+	}
+	isAdmin, err := s.UserService.IsAdmin(token)
+	if err != nil {
+		return fmt.Errorf("can't verify admin token: %w", err)
+	}
+	if !isAdmin {
+		return ErrForbidden
+	}
+
+	err = s.Cache.DeleteBanner(ctx, id)
+	if err != nil {
+		s.Log.Error("can''t delete banner from cache", "error", err)
+	}
+
+	err = s.Storage.DeleteBanner(ctx, id)
+	if err != nil {
+		return fmt.Errorf("can't delete banner: %w", err)
+	}
+
+	return nil
 }

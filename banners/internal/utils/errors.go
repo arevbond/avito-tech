@@ -12,6 +12,13 @@ const (
 	InternalErrorMessage string = "internal error"
 )
 
+var (
+	ErrInvalidTypeParam = &ErrorResult{Err: errors.New("invalid type param"),
+		Msg: "invalid type param", StatusCode: http.StatusBadRequest}
+	ErrNotRequiredParam = &ErrorResult{Err: errors.New("not required param"),
+		Msg: "required param is absent", StatusCode: http.StatusBadRequest}
+)
+
 type ErrorResult struct {
 	Err        error
 	Msg        string

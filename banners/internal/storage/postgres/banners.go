@@ -211,7 +211,6 @@ func (s *Storage) DeleteBanner(ctx context.Context, bannerID int) error {
 	if err != nil {
 		return utils.WrapInternalError(fmt.Errorf("can't commit transaction: %w", err))
 	}
-
 	return nil
 }
 

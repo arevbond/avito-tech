@@ -33,11 +33,16 @@ func (h *Handler) writeError(w http.ResponseWriter, err error) {
 	}
 }
 
-func (h *Handler) writeResponse(w http.ResponseWriter, response any) {
+func (h *Handler) writeResponse(w http.ResponseWriter, response any, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	if statusCode == http.StatusNoContent {
+		return
+	}
 	err := json.NewEncoder(w).Encode(response)
 	if err != nil {
 		http.Error(w, utils.InternalErrorMessage, http.StatusInternalServerError)
+		return
 	}
 }
 

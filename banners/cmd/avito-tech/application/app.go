@@ -61,7 +61,7 @@ func (a *App) constructEnv(ctx context.Context) (*env, error) {
 	c := cache.New(a.Config.Redis)
 	a.Closer.Add(c.Close)
 
-	bannerService := &service.ServiceImpl{
+	bannerService := &service.BannerService{
 		Storage:     db,
 		Cache:       c,
 		UserService: clients.New(a.Config.UsersService),

@@ -3,8 +3,8 @@ package publicapi
 import (
 	"banners/internal/service"
 	"banners/internal/utils"
-	"errors"
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
 )
@@ -23,28 +23,24 @@ func (h *Handler) UserBanner(w http.ResponseWriter, r *http.Request) {
 		featureIDstr := r.URL.Query().Get("feature_id")
 
 		if tagIDstr == "" || featureIDstr == "" {
-			return nil, utils.WrapError(errors.New("required param is absent"),
-				"required param is absent", http.StatusBadRequest)
+			return nil, utils.ErrNotRequiredParam
 		}
 
 		tagID, err := strconv.Atoi(tagIDstr)
 		if err != nil {
-			return nil, utils.WrapError(errors.New("invalid type parametr"),
-				"invalid type parametr", http.StatusBadRequest)
+			return nil, utils.ErrInvalidTypeParam
 		}
 
 		featureID, err := strconv.Atoi(featureIDstr)
 		if err != nil {
-			return nil, utils.WrapError(errors.New("invalid type parametr"),
-				"invalid type parametr", http.StatusBadRequest)
+			return nil, utils.ErrInvalidTypeParam
 		}
 
 		useLastRevisionString := r.URL.Query().Get("user_last_revision")
 
 		userLastRevision, err := strconv.ParseBool(useLastRevisionString)
 		if err != nil {
-			return nil, utils.WrapError(errors.New("invalid type parametr"),
-				"invalid type parametr", http.StatusBadRequest)
+			return nil, utils.ErrInvalidTypeParam
 		}
 
 		token := r.Header.Get("token")
@@ -74,7 +70,7 @@ func (h *Handler) UserBanner(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, fmt.Errorf("user banner: %w", err))
 		return
 	}
-	h.writeResponse(w, response)
+	h.writeResponse(w, response, http.StatusOK)
 }
 
 type createBannerResponse struct {
@@ -107,5 +103,76 @@ func (h *Handler) CreateBanner(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, fmt.Errorf("create banner: %w", err))
 		return
 	}
-	h.writeResponse(w, response)
+	h.writeResponse(w, response, http.StatusCreated)
+}
+
+func (h *Handler) UpdateBanner(w http.ResponseWriter, r *http.Request) {
+	handleRequest := func() error {
+		ctx := r.Context()
+
+		token := r.Header.Get("token")
+		if token == "" {
+			return utils.WrapServiceError(service.ErrUnauthorized)
+		}
+
+		var bannerIDstr string
+		if bannerIDstr = chi.URLParam(r, "id"); bannerIDstr == "" {
+			return utils.ErrNotRequiredParam
+		}
+		bannerID, err := strconv.Atoi(bannerIDstr)
+		if err != nil {
+			return utils.ErrInvalidTypeParam
+		}
+
+		banner, err := h.parseJSONBody(r)
+		if err != nil {
+			return utils.WrapInternalError(err)
+		}
+
+		err = h.BannerService.UpdateBanner(ctx, token, bannerID, banner)
+		if err != nil {
+			return fmt.Errorf("service error: %w", err)
+		}
+		return nil
+	}
+
+	err := handleRequest()
+	if err != nil {
+		h.writeError(w, fmt.Errorf("update banner: %w", err))
+		return
+	}
+	h.writeResponse(w, map[string]string{"status": "OK"}, http.StatusOK)
+}
+
+func (h *Handler) DeleteBanner(w http.ResponseWriter, r *http.Request) {
+	handleRequest := func() error {
+		ctx := r.Context()
+
+		token := r.Header.Get("token")
+		if token == "" {
+			return utils.WrapServiceError(service.ErrUnauthorized)
+		}
+
+		var bannerIDstr string
+		if bannerIDstr = chi.URLParam(r, "id"); bannerIDstr == "" {
+			return utils.ErrNotRequiredParam
+		}
+		bannerID, err := strconv.Atoi(bannerIDstr)
+		if err != nil {
+			return utils.ErrInvalidTypeParam
+		}
+
+		err = h.BannerService.DeleteBanner(ctx, token, bannerID)
+		if err != nil {
+			return fmt.Errorf("service error: %w", err)
+		}
+		return nil
+	}
+
+	err := handleRequest()
+	if err != nil {
+		h.writeError(w, fmt.Errorf("update banner: %w", err))
+		return
+	}
+	h.writeResponse(w, map[string]string{"status": "OK"}, http.StatusNoContent)
 }
