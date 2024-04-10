@@ -18,7 +18,8 @@ var (
 )
 
 type Service interface {
-	UserBanner(ctx context.Context, params *UserBannerParams) (*models.Content, error)
+	UserBanner(ctx context.Context, token string, params *UserBannerParams) (*models.Content, error)
+	Banners(ctx context.Context, token string, params *models.BannersParams) ([]*models.Banner, error)
 	CreateBanner(ctx context.Context, token string, banner *models.CreateBanner) (int, error)
 	UpdateBanner(ctx context.Context, token string, id int, updateBanner *models.CreateBanner) error
 	DeleteBanner(ctx context.Context, token string, id int) error
@@ -35,11 +36,10 @@ type UserBannerParams struct {
 	TagID           int
 	FeatureID       int
 	UseLastRevision bool
-	Token           string
 }
 
-func (s *BannerService) UserBanner(ctx context.Context, params *UserBannerParams) (*models.Content, error) {
-	isValidToken, err := s.UserService.VerifyToken(params.Token)
+func (s *BannerService) UserBanner(ctx context.Context, token string, params *UserBannerParams) (*models.Content, error) {
+	isValidToken, err := s.UserService.VerifyToken(token)
 	if err != nil {
 		return nil, fmt.Errorf("can't verify token: %w", err)
 	}
@@ -55,7 +55,7 @@ func (s *BannerService) UserBanner(ctx context.Context, params *UserBannerParams
 			if bannerFromCache.IsActive {
 				return &bannerFromCache.Content, nil
 			}
-			isAdmin, err := s.UserService.IsAdmin(params.Token)
+			isAdmin, err := s.UserService.IsAdmin(token)
 			if err != nil {
 				return nil, fmt.Errorf("can't verify admin token: %w", err)
 			}
@@ -89,7 +89,7 @@ func (s *BannerService) UserBanner(ctx context.Context, params *UserBannerParams
 		return &userBanner.Content, nil
 	}
 
-	isAdmin, err := s.UserService.IsAdmin(params.Token)
+	isAdmin, err := s.UserService.IsAdmin(token)
 	if err != nil {
 		return nil, fmt.Errorf("can't verify admin token: %w", err)
 	}
@@ -97,6 +97,31 @@ func (s *BannerService) UserBanner(ctx context.Context, params *UserBannerParams
 		return &userBanner.Content, nil
 	}
 	return nil, ErrForbidden
+}
+
+func (s *BannerService) Banners(ctx context.Context, token string, params *models.BannersParams) ([]*models.Banner, error) {
+	isValidToken, err := s.UserService.VerifyToken(token)
+	if err != nil {
+		return nil, fmt.Errorf("can't verify token: %w", err)
+	}
+	if !isValidToken {
+		return nil, ErrUnauthorized
+	}
+
+	isAdmin, err := s.UserService.IsAdmin(token)
+	if err != nil {
+		return nil, fmt.Errorf("can't verify admin token: %w", err)
+	}
+	if !isAdmin {
+		return nil, ErrForbidden
+	}
+
+	banners, err := s.Storage.GetBanners(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("storage error: %w", err)
+	}
+
+	return banners, nil
 }
 
 func (s *BannerService) CreateBanner(ctx context.Context, token string, createBanner *models.CreateBanner) (int, error) {

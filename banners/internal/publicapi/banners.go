@@ -1,6 +1,7 @@
 package publicapi
 
 import (
+	"banners/internal/models"
 	"banners/internal/service"
 	"banners/internal/utils"
 	"fmt"
@@ -48,11 +49,10 @@ func (h *Handler) UserBanner(w http.ResponseWriter, r *http.Request) {
 			return nil, utils.WrapServiceError(service.ErrUnauthorized)
 		}
 
-		userBanner, err := h.BannerService.UserBanner(ctx, &service.UserBannerParams{
+		userBanner, err := h.BannerService.UserBanner(ctx, token, &service.UserBannerParams{
 			TagID:           tagID,
 			FeatureID:       featureID,
 			UseLastRevision: userLastRevision,
-			Token:           token,
 		})
 		if err != nil {
 			return nil, utils.WrapInternalError(fmt.Errorf("service get banner: %w", err))
@@ -68,6 +68,58 @@ func (h *Handler) UserBanner(w http.ResponseWriter, r *http.Request) {
 	response, err := handleRequst()
 	if err != nil {
 		h.writeError(w, fmt.Errorf("user banner: %w", err))
+		return
+	}
+	h.writeResponse(w, response, http.StatusOK)
+}
+
+func (h *Handler) Banners(w http.ResponseWriter, r *http.Request) {
+	handleRequst := func() ([]*models.Banner, *utils.ErrorResult) {
+		ctx := r.Context()
+
+		tagIDstr := r.URL.Query().Get("tag_id")
+		featureIDstr := r.URL.Query().Get("feature_id")
+		offsetStr := r.URL.Query().Get("offset")
+		limitStr := r.URL.Query().Get("limit")
+
+		offset, _ := strconv.Atoi(offsetStr)
+		limit, _ := strconv.Atoi(limitStr)
+
+		if tagIDstr == "" || featureIDstr == "" {
+			return nil, utils.ErrNotRequiredParam
+		}
+
+		tagID, err := strconv.Atoi(tagIDstr)
+		if err != nil {
+			return nil, utils.ErrInvalidTypeParam
+		}
+
+		featureID, err := strconv.Atoi(featureIDstr)
+		if err != nil {
+			return nil, utils.ErrInvalidTypeParam
+		}
+
+		token := r.Header.Get("token")
+		if token == "" {
+			return nil, utils.WrapServiceError(service.ErrUnauthorized)
+		}
+
+		banners, err := h.BannerService.Banners(ctx, token, &models.BannersParams{
+			TagID:     tagID,
+			FeatureID: featureID,
+			Offset:    offset,
+			Limit:     limit,
+		})
+		if err != nil {
+			return nil, utils.WrapInternalError(fmt.Errorf("service get banner: %w", err))
+		}
+
+		return banners, nil
+	}
+
+	response, err := handleRequst()
+	if err != nil {
+		h.writeError(w, fmt.Errorf("banners: %w", err))
 		return
 	}
 	h.writeResponse(w, response, http.StatusOK)

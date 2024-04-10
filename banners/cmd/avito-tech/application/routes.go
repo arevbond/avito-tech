@@ -21,7 +21,7 @@ func (a *App) publicMux(env *env) *chi.Mux {
 	}
 
 	mux.Get("/user_banner", handler.UserBanner)
-	//mux.Get("/banner", handler.)
+	mux.Get("/banner", handler.Banners)
 	mux.Post("/banner", handler.CreateBanner)
 	mux.Patch("/banner/{id}", handler.UpdateBanner)
 	mux.Delete("/banner/{id}", handler.DeleteBanner)

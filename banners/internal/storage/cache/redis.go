@@ -27,6 +27,69 @@ func New(cfg config.RedisConfig) *Cache {
 	return &Cache{Client: client}
 }
 
+func (c *Cache) AddBanner(ctx context.Context, banner *models.Banner) error {
+	bannerJSON, err := json.Marshal(banner)
+	if err != nil {
+		return err
+	}
+
+	err = c.Client.HSet(ctx, fmt.Sprintf("banner:%d", banner.ID), "data", bannerJSON).Err()
+	if err != nil {
+		return err
+	}
+
+	for _, tagID := range banner.TagIDs {
+		err = c.Client.SAdd(ctx, fmt.Sprintf("tag:%d:banners", tagID), banner.ID).Err()
+		if err != nil {
+			return err
+		}
+	}
+
+	err = c.Client.SAdd(ctx, fmt.Sprintf("feature:%d:banners", banner.FeatureID), banner.ID).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Cache) getBannersByTagAndFeatureID(ctx context.Context, tagID, featureID int) ([]*models.Banner, error) {
+	tagBannerIDs, err := c.Client.SMembers(ctx, fmt.Sprintf("tag:%d:banners", tagID)).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	featureBannerIDs, err := c.Client.SMembers(ctx, fmt.Sprintf("feature:%d:banners", featureID)).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	intersection := make([]string, 0)
+	for _, bannerID := range tagBannerIDs {
+		if contains(featureBannerIDs, bannerID) {
+			intersection = append(intersection, bannerID)
+		}
+	}
+
+	banners := make([]*models.Banner, 0)
+	for _, bannerID := range intersection {
+		bannerData, err := c.Client.HGet(ctx, fmt.Sprintf("banner:%s", bannerID), "data").Result()
+		if err != nil {
+			return nil, err
+		}
+
+		var retrievedBanner *models.Banner
+		err = json.Unmarshal([]byte(bannerData), &retrievedBanner)
+		if err != nil {
+			return nil, err
+		}
+
+		banners = append(banners, retrievedBanner)
+	}
+
+	return banners, nil
+}
+
 func (c *Cache) GetBannerByTagAndFeature(ctx context.Context, tagID, featureID int) (*models.Banner, error) {
 	tagBannerIDs, err := c.Client.SMembers(ctx, fmt.Sprintf("tag:%d:banners", tagID)).Result()
 	if err != nil {
@@ -54,32 +117,6 @@ func (c *Cache) GetBannerByTagAndFeature(ctx context.Context, tagID, featureID i
 		}
 	}
 	return nil, nil
-}
-
-func (c *Cache) AddBanner(ctx context.Context, banner *models.Banner) error {
-	bannerJSON, err := json.Marshal(banner)
-	if err != nil {
-		return err
-	}
-
-	err = c.Client.HSet(ctx, fmt.Sprintf("banner:%d", banner.ID), "data", bannerJSON).Err()
-	if err != nil {
-		return err
-	}
-
-	for _, tagID := range banner.TagIDs {
-		err = c.Client.SAdd(ctx, fmt.Sprintf("tag:%d:banners", tagID), banner.ID).Err()
-		if err != nil {
-			return err
-		}
-	}
-
-	err = c.Client.SAdd(ctx, fmt.Sprintf("feature:%d:banners", banner.FeatureID), banner.ID).Err()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (c *Cache) UpdateBanner(ctx context.Context, id int, banner *models.CreateBanner) error {
