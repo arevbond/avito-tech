@@ -14,6 +14,17 @@ services:
 #    networks:
 #      - mynet
 
+  slave:
+    image: postgres:latest
+    container_name: "slave"
+    environment:
+      POSTGRES_DB: "avito-tech-local"
+      POSTGRES_USER: "avito-tech-local-admin"
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5423:5432"
+    restart: unless-stopped
+
   cache:
     image: redis
     restart: unless-stopped
@@ -30,19 +41,6 @@ services:
     ports:
       - 8082:8081
     restart: unless-stopped
-
-
-#  migrate:
-#    image: migrate/migrate
-#    container_name: "migrate"
-#    command: [ "-path", "/migrations", "-database",  "postgresql://social-network-local-admin:eephayl3eaph8Xo@master:5432/social-network-local?sslmode=disable", "up" ]
-#    networks:
-#      - mynet
-#    depends_on:
-#      master:
-#        condition: service_healthy # needful setting which wait available postgres host
-#    volumes:
-#      - ./migrations:/migrations
 
 #volumes:
 #  postgres-db-master:

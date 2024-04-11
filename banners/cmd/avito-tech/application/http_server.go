@@ -102,7 +102,7 @@ func (h *HTTPServerWrap) GracefulStop() []func() error {
 func NewNetHTTPServer(log *slog.Logger, port int, incomeMux *chi.Mux) *http.Server {
 	mux := chi.NewMux()
 	mux.Use(loggerMiddleware(log))
-	//mux.Use(middleware.RequestID)
+	mux.Use(middleware.RequestID)
 	mux.Use(middleware.Recoverer)
 	mux.Use(middleware.URLFormat)
 	if incomeMux != nil {

@@ -51,7 +51,7 @@ func (s *Storage) GetBanner(ctx context.Context, params *models.BannerParams) (*
 
 func (s *Storage) GetBanners(ctx context.Context, params *models.BannersParams) ([]*models.Banner, error) {
 	banners := []*bannerWithTagsDBEntity{}
-	err := sqlx.SelectContext(ctx, s.Slave(), &banners, queryAllBannersWithFilters, params.TagID, params.FeatureID,
+	err := sqlx.SelectContext(ctx, s.Slave(), &banners, queryAllBannersWithFilters, params.FeatureID, params.TagID,
 		params.Offset, params.Limit)
 	if err != nil {
 		return nil, utils.WrapSqlError(fmt.Errorf("can't get banners: %w", err))
@@ -241,7 +241,7 @@ func (b bannerDBEntity) toModel() (*models.Banner, error) {
 
 type bannerWithTagsDBEntity struct {
 	ID        int       `db:"id"`
-	TagIDs    string    `db:"tag_ids"`
+	TagIDs    *string   `db:"tag_ids"`
 	FeatureID int       `db:"feature_id"`
 	Content   []byte    `db:"content"`
 	IsActive  bool      `db:"is_active"`
@@ -250,7 +250,14 @@ type bannerWithTagsDBEntity struct {
 }
 
 func (b *bannerWithTagsDBEntity) toModel() (*models.Banner, error) {
-	tagIDs := b.parseIntArray(b.TagIDs)
+	var tagIDs []int
+
+	if b.TagIDs != nil {
+		tagIDs = b.parseIntArray(b.TagIDs)
+	} else {
+		tagIDs = make([]int, 0)
+	}
+
 	var content models.Content
 	err := json.Unmarshal(b.Content, &content)
 	if err != nil {
@@ -267,9 +274,9 @@ func (b *bannerWithTagsDBEntity) toModel() (*models.Banner, error) {
 	}, nil
 }
 
-func (b *bannerWithTagsDBEntity) parseIntArray(input string) []int {
+func (b *bannerWithTagsDBEntity) parseIntArray(input *string) []int {
 	re := regexp.MustCompile(`\d+`)
-	matches := re.FindAllString(input, -1)
+	matches := re.FindAllString(*input, -1)
 
 	result := make([]int, 0)
 	for _, match := range matches {

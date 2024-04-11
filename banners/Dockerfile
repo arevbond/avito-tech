@@ -1,14 +1,16 @@
-FROM golang:1.22 as builder
+FROM golang:latest AS builder
 
-WORKDIR /usr/src/app
+WORKDIR /app
+COPY . .
 
-# pre-copy/cache go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
-COPY go.mod go.sum ./
-RUN go mod download && go mod verify
+RUN go get -d -v ./...
+RUN go build -o avito-tech ./cmd/avito-tech/main.go
 
-COPY .. .
-RUN go build -v -o /usr/local/bin/avito-tech ./...
+FROM alpine:latest
 
-CMD ["/usr/local/bin/avito-tech", "-config", "/usr/local/bin/avito-tech/config.yaml"]
+RUN apk --no-cache add ca-certificates
 
-EXPOSE 8080-8081
+WORKDIR /root/
+COPY --from=builder /app .
+
+CMD ["./avito-tech", "-config=./cmd/avito-tech/config/config.yaml"]

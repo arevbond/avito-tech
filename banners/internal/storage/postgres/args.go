@@ -58,7 +58,7 @@ var (
 			b.is_active, 
 			b.created_at, 
 			b.updated_at,
-			ARRAY_AGG(CASE WHEN bt.tag_id != 0 THEN bt.tag_id END) FILTER (WHERE bt.banner_id = b.id) AS tag_ids
+			ARRAY_AGG(COALESCE(CASE WHEN bt.tag_id != 0 THEN bt.tag_id END, NULL)) FILTER (WHERE bt.banner_id = b.id) AS tag_ids
 		FROM 
 			banners AS b
 		LEFT JOIN 

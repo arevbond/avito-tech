@@ -77,26 +77,36 @@ func (h *Handler) Banners(w http.ResponseWriter, r *http.Request) {
 	handleRequst := func() ([]*models.Banner, *utils.ErrorResult) {
 		ctx := r.Context()
 
+		defaultTagID := 0
+		defaultFeatureID := 0
+		defaultOffset := 0
+		defaultLimit := 100
+
 		tagIDstr := r.URL.Query().Get("tag_id")
 		featureIDstr := r.URL.Query().Get("feature_id")
 		offsetStr := r.URL.Query().Get("offset")
 		limitStr := r.URL.Query().Get("limit")
 
-		offset, _ := strconv.Atoi(offsetStr)
-		limit, _ := strconv.Atoi(limitStr)
-
-		if tagIDstr == "" || featureIDstr == "" {
-			return nil, utils.ErrNotRequiredParam
-		}
-
 		tagID, err := strconv.Atoi(tagIDstr)
 		if err != nil {
-			return nil, utils.ErrInvalidTypeParam
+			tagID = defaultTagID
 		}
 
 		featureID, err := strconv.Atoi(featureIDstr)
 		if err != nil {
-			return nil, utils.ErrInvalidTypeParam
+			featureID = defaultFeatureID
+		}
+
+		// Validate and parse offset
+		offset, err := strconv.Atoi(offsetStr)
+		if err != nil {
+			offset = defaultOffset
+		}
+
+		// Validate and parse limit
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			limit = defaultLimit
 		}
 
 		token := r.Header.Get("token")
@@ -111,9 +121,9 @@ func (h *Handler) Banners(w http.ResponseWriter, r *http.Request) {
 			Limit:     limit,
 		})
 		if err != nil {
+			h.Log.Error("banners error", "error", err)
 			return nil, utils.WrapInternalError(fmt.Errorf("service get banner: %w", err))
 		}
-
 		return banners, nil
 	}
 

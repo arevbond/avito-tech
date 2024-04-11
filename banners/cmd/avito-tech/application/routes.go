@@ -26,11 +26,5 @@ func (a *App) publicMux(env *env) *chi.Mux {
 	mux.Patch("/banner/{id}", handler.UpdateBanner)
 	mux.Delete("/banner/{id}", handler.DeleteBanner)
 
-	//mux.Route("/banner", func(r chi.Router) {
-	//r.Use(bannerCtx)
-	//r.Patch("/{id}", handler.UpdateBanner)
-	//	r.Delete("/{id}", .handler)
-	//})
-
 	return mux
 }
