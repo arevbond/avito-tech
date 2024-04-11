@@ -2,7 +2,12 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"users/internal/models"
+)
+
+var (
+	ErrUserExist = errors.New("user already exist")
 )
 
 type Storage interface {

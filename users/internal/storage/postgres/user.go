@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
 	"users/internal/models"
+	"users/internal/storage"
 	"users/internal/utils"
 )
 
@@ -22,8 +24,13 @@ func (s *Storage) CreateUser(ctx context.Context, params *models.UserRegister) (
 	var entity userDBEntity
 	err = s.db.GetContext(ctx, &entity, sql, args...)
 	if err != nil {
+		pgErr, ok := err.(*pq.Error)
+		if ok && pgErr.Code == "23505" {
+			return nil, storage.ErrUserExist
+		}
 		return nil, utils.WrapSqlError(err)
 	}
+
 	return entity.convertToModel(), nil
 }
 

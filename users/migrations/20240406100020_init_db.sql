@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
  id              TEXT                     NOT NULL,
  username        TEXT UNIQUE              NOT NULL,
  hashed_password TEXT                     NOT NULL,
- is_admin BOOLEAN default false,
+ is_admin BOOLEAN,
 
  CONSTRAINT pk_users PRIMARY KEY (id)
 );

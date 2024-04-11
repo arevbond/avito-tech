@@ -39,9 +39,10 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		tokenModel, err := h.userService.Register(ctx, &service.RegisterParams{
 			Username: request.Username,
 			Password: request.Password,
+			IsAdmin:  request.IsAdmin,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("register service: %w", err)
+			return nil, utils.WrapError(err, "user already exist", 400)
 		}
 
 		return &jwtTokenResponse{
