@@ -15,6 +15,8 @@ var (
 	ErrUnauthorized = errors.New("user unauthorized")
 	ErrNotFound     = errors.New("not found")
 	ErrForbidden    = errors.New("forbidden")
+
+	ErrIncorrectData = errors.New("incorrect data")
 )
 
 type Service interface {
@@ -71,11 +73,10 @@ func (s *BannerService) UserBanner(ctx context.Context, token string, params *Us
 		TagID:     params.TagID,
 	})
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return nil, ErrNotFound
+		}
 		return nil, fmt.Errorf("storage error: %w", err)
-	}
-
-	if userBanner == nil {
-		return nil, ErrNotFound
 	}
 
 	if !params.UseLastRevision {
@@ -142,7 +143,8 @@ func (s *BannerService) CreateBanner(ctx context.Context, token string, createBa
 
 	banner, err := s.Storage.CreateBanner(ctx, createBanner)
 	if err != nil {
-		return -1, fmt.Errorf("can't create banner: %w", err)
+		s.Log.Error("can't create banner", "error", err)
+		return -1, ErrIncorrectData
 	}
 
 	err = s.Cache.AddBanner(ctx, banner)

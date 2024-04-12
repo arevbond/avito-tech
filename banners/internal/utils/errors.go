@@ -95,6 +95,12 @@ func WrapServiceError(err error) *ErrorResult {
 			Msg:        err.Error(),
 			StatusCode: 403,
 		}
+	case service.ErrIncorrectData:
+		return &ErrorResult{
+			Err:        err,
+			Msg:        err.Error(),
+			StatusCode: 400,
+		}
 	default:
 		return WrapInternalError(err)
 	}

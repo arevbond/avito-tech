@@ -3,6 +3,11 @@ package storage
 import (
 	"banners/internal/models"
 	"context"
+	"errors"
+)
+
+var (
+	ErrNotFound = errors.New("not found")
 )
 
 type Storage interface {

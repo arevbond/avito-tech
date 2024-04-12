@@ -4,6 +4,7 @@ import (
 	"banners/internal/models"
 	"banners/internal/service"
 	"banners/internal/utils"
+	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"net/http"
@@ -29,19 +30,23 @@ func (h *Handler) UserBanner(w http.ResponseWriter, r *http.Request) {
 
 		tagID, err := strconv.Atoi(tagIDstr)
 		if err != nil {
+			h.Log.Error("can't convert string", "error", err)
 			return nil, utils.ErrInvalidTypeParam
 		}
 
 		featureID, err := strconv.Atoi(featureIDstr)
 		if err != nil {
+			h.Log.Error("can't convert string", "error", err)
 			return nil, utils.ErrInvalidTypeParam
 		}
 
-		useLastRevisionString := r.URL.Query().Get("user_last_revision")
+		var defaultUseLastRevision bool
+		useLastRevisionString := r.URL.Query().Get("use_last_revision")
 
-		userLastRevision, err := strconv.ParseBool(useLastRevisionString)
+		useLastRevision, err := strconv.ParseBool(useLastRevisionString)
 		if err != nil {
-			return nil, utils.ErrInvalidTypeParam
+			h.Log.Error("can't convert string", "error", err)
+			useLastRevision = defaultUseLastRevision
 		}
 
 		token := r.Header.Get("token")
@@ -52,9 +57,13 @@ func (h *Handler) UserBanner(w http.ResponseWriter, r *http.Request) {
 		userBanner, err := h.BannerService.UserBanner(ctx, token, &service.UserBannerParams{
 			TagID:           tagID,
 			FeatureID:       featureID,
-			UseLastRevision: userLastRevision,
+			UseLastRevision: useLastRevision,
 		})
+
 		if err != nil {
+			if errors.Is(service.ErrNotFound, err) {
+				return nil, utils.WrapServiceError(err)
+			}
 			return nil, utils.WrapInternalError(fmt.Errorf("service get banner: %w", err))
 		}
 
@@ -122,7 +131,7 @@ func (h *Handler) Banners(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			h.Log.Error("banners error", "error", err)
-			return nil, utils.WrapInternalError(fmt.Errorf("service get banner: %w", err))
+			return nil, utils.WrapServiceError(err)
 		}
 		return banners, nil
 	}
@@ -193,7 +202,7 @@ func (h *Handler) UpdateBanner(w http.ResponseWriter, r *http.Request) {
 
 		err = h.BannerService.UpdateBanner(ctx, token, bannerID, banner)
 		if err != nil {
-			return fmt.Errorf("service error: %w", err)
+			return utils.WrapServiceError(err)
 		}
 		return nil
 	}

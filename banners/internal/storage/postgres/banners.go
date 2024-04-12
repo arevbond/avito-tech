@@ -2,9 +2,12 @@ package postgres
 
 import (
 	"banners/internal/models"
+	"banners/internal/storage"
 	"banners/internal/utils"
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
@@ -15,7 +18,7 @@ import (
 )
 
 func (s *Storage) GetBanner(ctx context.Context, params *models.BannerParams) (*models.Banner, error) {
-	sql, args, err := sq.Select(
+	query, args, err := sq.Select(
 		bannerTable+"."+fieldID,
 		bannerTable+"."+fieldFeatureID,
 		bannerTable+"."+fieldContent,
@@ -34,12 +37,15 @@ func (s *Storage) GetBanner(ctx context.Context, params *models.BannerParams) (*
 		).
 		PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
-		return nil, utils.WrapInternalError(fmt.Errorf("can't create sql: %w", err))
+		return nil, utils.WrapInternalError(fmt.Errorf("can't create query: %w", err))
 	}
 
 	var banner bannerDBEntity
-	err = sqlx.GetContext(ctx, s.Slave(), &banner, sql, args...)
+	err = sqlx.GetContext(ctx, s.Slave(), &banner, query, args...)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, storage.ErrNotFound
+		}
 		return nil, utils.WrapSqlError(fmt.Errorf("can't get banner: %w", err))
 	}
 	result, err := banner.toModel()
@@ -142,16 +148,19 @@ func (s *Storage) UpdateBanner(ctx context.Context, id int, params *models.Creat
 
 	_, err = tx.ExecContext(ctx, updateBannerQuery, updateBannerArgs...)
 	if err != nil {
+		s.storage.log.Error("update banner", "error", err)
 		return utils.WrapInternalError(fmt.Errorf("can't update banner in %s: %w", bannerTable, err))
 	}
 
 	deleteOldTagsQuery, deleteOldTagsArgs, err2 := sq.Delete(bannerToTagsTable).Where(sq.Eq{fieldBannerID: id}).
 		PlaceholderFormat(sq.Dollar).ToSql()
 	if err2 != nil {
+		s.storage.log.Error("update banner", "error", err)
 		return utils.WrapSqlError(fmt.Errorf("can't create updateBannerQuery: %w", err))
 	}
 	_, err = tx.ExecContext(ctx, deleteOldTagsQuery, deleteOldTagsArgs...)
 	if err != nil {
+		s.storage.log.Error("update banner", "error", err)
 		return utils.WrapSqlError(fmt.Errorf("can't delete old relationships: %w", err))
 	}
 
