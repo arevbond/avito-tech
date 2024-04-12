@@ -235,13 +235,14 @@ func (h *Handler) DeleteBanner(w http.ResponseWriter, r *http.Request) {
 
 		err = h.BannerService.DeleteBanner(ctx, token, bannerID)
 		if err != nil {
-			return fmt.Errorf("service error: %w", err)
+			return utils.WrapServiceError(err)
 		}
 		return nil
 	}
 
 	err := handleRequest()
 	if err != nil {
+		h.Log.Error("handle request error", "error", err)
 		h.writeError(w, fmt.Errorf("update banner: %w", err))
 		return
 	}

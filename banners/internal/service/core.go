@@ -206,6 +206,9 @@ func (s *BannerService) DeleteBanner(ctx context.Context, token string, id int) 
 
 	err = s.Storage.DeleteBanner(ctx, id)
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return ErrNotFound
+		}
 		return fmt.Errorf("can't delete banner: %w", err)
 	}
 
